@@ -966,9 +966,8 @@
               "subnet": {
                 "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('networkSettings').vNetPrivateName, variables('networkSettings').subnetSPName)]"
               },
-              "publicIPAddress": {
-                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(variables('vmFE').vmPublicIPName, '-', copyIndex()))]"
-              }
+              "publicIPAddress": 
+                "[if(equals(parameters('addPublicIPAddressToEachVM'), 'Yes'), concat('{ \"id\": ', resourceId('Microsoft.Network/publicIPAddresses', concat(variables('vmFE').vmPublicIPName, '-', copyIndex())), ' }'), json('null'))]"
             }
           }
         ]
