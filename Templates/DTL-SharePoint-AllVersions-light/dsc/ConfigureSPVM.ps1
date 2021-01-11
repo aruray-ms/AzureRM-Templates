@@ -5,7 +5,15 @@ configuration ConfigureSPVM
         [Parameter(Mandatory)] [String]$DNSServer,
         [Parameter(Mandatory)] [String]$DomainFQDN,
         [Parameter(Mandatory)] [String]$DCName,
-        [Parameter(Mandatory)] [System.Management.Automation.PSCredential]$DomainAdminCreds
+        [Parameter(Mandatory)] [String]$SQLName,
+        [Parameter(Mandatory)] [String]$SQLAlias,
+        [Parameter(Mandatory)] [String]$SharePointVersion,
+        [Parameter(Mandatory)] [Boolean]$ConfigureADFS,
+        [Parameter(Mandatory)] [System.Management.Automation.PSCredential]$DomainAdminCreds,
+        [Parameter(Mandatory)] [System.Management.Automation.PSCredential]$SPSetupCreds,
+        [Parameter(Mandatory)] [System.Management.Automation.PSCredential]$SPFarmCreds,
+        [Parameter(Mandatory)] [System.Management.Automation.PSCredential]$SPAppPoolCreds,
+        [Parameter(Mandatory)] [System.Management.Automation.PSCredential]$SPPassphraseCreds
     )
 
     Import-DscResource -ModuleName ComputerManagementDsc, ActiveDirectoryDsc, xDnsServer
