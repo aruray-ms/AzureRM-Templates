@@ -4,16 +4,7 @@ configuration ConfigureSPVM
     (
         [Parameter(Mandatory)] [String]$DNSServer,
         [Parameter(Mandatory)] [String]$DomainFQDN,
-        [Parameter(Mandatory)] [String]$DCName,
-        [Parameter(Mandatory)] [String]$SQLName,
-        [Parameter(Mandatory)] [String]$SQLAlias,
-        [Parameter(Mandatory)] [String]$SharePointVersion,
-        [Parameter(Mandatory)] [Boolean]$ConfigureADFS,
-        [Parameter(Mandatory)] [System.Management.Automation.PSCredential]$DomainAdminCreds,
-        [Parameter(Mandatory)] [System.Management.Automation.PSCredential]$SPSetupCreds,
-        [Parameter(Mandatory)] [System.Management.Automation.PSCredential]$SPFarmCreds,
-        [Parameter(Mandatory)] [System.Management.Automation.PSCredential]$SPAppPoolCreds,
-        [Parameter(Mandatory)] [System.Management.Automation.PSCredential]$SPPassphraseCreds
+        [Parameter(Mandatory)] [System.Management.Automation.PSCredential]$DomainAdminCreds
     )
 
     Import-DscResource -ModuleName ComputerManagementDsc, ActiveDirectoryDsc, xDnsServer, NetworkingDsc, xPSDesiredStateConfiguration
@@ -45,7 +36,13 @@ configuration ConfigureSPVM
             WaitForValidCredentials = $True
             PsDscRunAsCredential    = $DomainAdminCredsQualified
             DependsOn               = "[DnsServerAddress]SetDNS"
-        }        
+        }
+
+        ADUser CreateDumbAccount
+        {
+            DomainName = $DomainFQDN
+            UserName   = "DumbAccount"
+        }
 
         xScript ForceReboot1
         {
@@ -98,7 +95,7 @@ configuration ConfigureSPVM
             SkipCcmClientSDK = $true
             DependsOn        = "[xScript]ForceReboot2"
             # DependsOn        = "[Computer]JoinDomain"
-        }        
+        }
     }
 }
 
@@ -134,22 +131,11 @@ Install-Module -Name PendingReboot
 help ConfigureSPVM
 
 $DomainAdminCreds = Get-Credential -Credential "yvand"
-$SPSetupCreds = Get-Credential -Credential "spsetup"
-$SPFarmCreds = Get-Credential -Credential "spfarm"
-$SPSvcCreds = Get-Credential -Credential "spsvc"
-$SPAppPoolCreds = Get-Credential -Credential "spapppool"
-$SPPassphraseCreds = Get-Credential -Credential "Passphrase"
-$SPSuperUserCreds = Get-Credential -Credential "spSuperUser"
-$SPSuperReaderCreds = Get-Credential -Credential "spSuperReader"
 $DNSServer = "10.1.1.4"
 $DomainFQDN = "contoso.local"
-$DCName = "DC"
-$SQLName = "SQL"
-$SQLAlias = "SQLAlias"
-$SharePointVersion = 2019
 
-$outputPath = "C:\Packages\Plugins\Microsoft.Powershell.DSC\2.80.0.3\DSCWork\ConfigureSPVM.0\ConfigureSPVM"
-ConfigureSPVM -DomainAdminCreds $DomainAdminCreds -SPSetupCreds $SPSetupCreds -SPFarmCreds $SPFarmCreds -SPSvcCreds $SPSvcCreds -SPAppPoolCreds $SPAppPoolCreds -SPPassphraseCreds $SPPassphraseCreds -SPSuperUserCreds $SPSuperUserCreds -SPSuperReaderCreds $SPSuperReaderCreds -DNSServer $DNSServer -DomainFQDN $DomainFQDN -DCName $DCName -SQLName $SQLName -SQLAlias $SQLAlias -SharePointVersion $SharePointVersion -ConfigurationData @{AllNodes=@(@{ NodeName="localhost"; PSDscAllowPlainTextPassword=$true })} -OutputPath $outputPath
+$outputPath = "C:\Packages\Plugins\Microsoft.Powershell.DSC\2.80.3.0\DSCWork\ConfigureSPVM.0\ConfigureSPVM"
+ConfigureSPVM -DomainAdminCreds $DomainAdminCreds -DNSServer $DNSServer -DomainFQDN $DomainFQDN -ConfigurationData @{AllNodes=@(@{ NodeName="localhost"; PSDscAllowPlainTextPassword=$true })} -OutputPath $outputPath
 Set-DscLocalConfigurationManager -Path $outputPath
 Start-DscConfiguration -Path $outputPath -Wait -Verbose -Force
 
