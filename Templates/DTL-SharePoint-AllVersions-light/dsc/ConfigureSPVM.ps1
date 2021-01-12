@@ -23,10 +23,9 @@ configuration ConfigureSPVM
             RebootNodeIfNeeded = $true
         }
 
-        WindowsFeature AddADTools      { Name = "RSAT-AD-Tools";      Ensure = "Present"; }
-        WindowsFeature AddADPowerShell { Name = "RSAT-AD-PowerShell"; Ensure = "Present"; }
-        WindowsFeature AddDnsTools     { Name = "RSAT-DNS-Server";    Ensure = "Present"; }
         DnsServerAddress SetDNS { Address = $DNSServer; InterfaceAlias = $InterfaceAlias; AddressFamily  = 'IPv4' }
+
+        # ADUser CreateDumbAccount { DomainName = $DomainFQDN; UserName = "DumbAccount" }
 
         WaitForADDomain WaitForDCReady
         {
@@ -38,64 +37,58 @@ configuration ConfigureSPVM
             DependsOn               = "[DnsServerAddress]SetDNS"
         }
 
-        ADUser CreateDumbAccount
-        {
-            DomainName = $DomainFQDN
-            UserName   = "DumbAccount"
-        }
+        # xScript ForceReboot1
+        # {
+        #     # If the TestScript returns $false, DSC executes the SetScript to bring the node back to the desired state
+        #     TestScript = {
+        #         return (Test-Path HKLM:\SOFTWARE\DscScriptExecution\flag_ForceReboot1)
+        #     }
+        #     SetScript = {
+        #         New-Item -Path HKLM:\SOFTWARE\DscScriptExecution\flag_ForceReboot1 -Force
+        #         $global:DSCMachineStatus = 1
+        #     }
+        #     GetScript = { }
+        #     PsDscRunAsCredential = $DomainAdminCredsQualified
+        #     DependsOn = "[WaitForADDomain]WaitForDCReady"
+        # }
 
-        xScript ForceReboot1
-        {
-            # If the TestScript returns $false, DSC executes the SetScript to bring the node back to the desired state
-            TestScript = {
-                return (Test-Path HKLM:\SOFTWARE\DscScriptExecution\flag_ForceReboot1)
-            }
-            SetScript = {
-                New-Item -Path HKLM:\SOFTWARE\DscScriptExecution\flag_ForceReboot1 -Force
-                $global:DSCMachineStatus = 1
-            }
-            GetScript = { }
-            PsDscRunAsCredential = $DomainAdminCredsQualified
-            DependsOn = "[WaitForADDomain]WaitForDCReady"
-        }
-
-        PendingReboot RebootOnSignalFromForceReboot1
-        {
-            Name             = "RebootOnSignalFromForceReboot1"
-            SkipCcmClientSDK = $true
-            DependsOn        = "[xScript]ForceReboot1"
-        }
+        # PendingReboot RebootOnSignalFromForceReboot1
+        # {
+        #     Name             = "RebootOnSignalFromForceReboot1"
+        #     SkipCcmClientSDK = $true
+        #     DependsOn        = "[xScript]ForceReboot1"
+        # }
 
         Computer JoinDomain
         {
             Name       = $ComputerName
             DomainName = $DomainFQDN
             Credential = $DomainAdminCredsQualified
-            DependsOn  = "[PendingReboot]RebootOnSignalFromForceReboot1"
+            DependsOn  = "[WaitForADDomain]WaitForDCReady"
         }
 
-        xScript ForceReboot2
-        {
-            # If the TestScript returns $false, DSC executes the SetScript to bring the node back to the desired state
-            TestScript = {
-                return (Test-Path HKLM:\SOFTWARE\DscScriptExecution\ForceReboot2)
-            }
-            SetScript = {
-                New-Item -Path HKLM:\SOFTWARE\DscScriptExecution\ForceReboot2 -Force
-                $global:DSCMachineStatus = 1
-            }
-            GetScript = { }
-            PsDscRunAsCredential = $DomainAdminCredsQualified
-            DependsOn = "[Computer]JoinDomain"
-        }
+        # xScript ForceReboot2
+        # {
+        #     # If the TestScript returns $false, DSC executes the SetScript to bring the node back to the desired state
+        #     TestScript = {
+        #         return (Test-Path HKLM:\SOFTWARE\DscScriptExecution\ForceReboot2)
+        #     }
+        #     SetScript = {
+        #         New-Item -Path HKLM:\SOFTWARE\DscScriptExecution\ForceReboot2 -Force
+        #         $global:DSCMachineStatus = 1
+        #     }
+        #     GetScript = { }
+        #     PsDscRunAsCredential = $DomainAdminCredsQualified
+        #     DependsOn = "[Computer]JoinDomain"
+        # }
 
-        PendingReboot RebootOnSignalFromJoinDomain
-        {
-            Name             = "RebootOnSignalFromJoinDomain"
-            SkipCcmClientSDK = $true
-            DependsOn        = "[xScript]ForceReboot2"
-            # DependsOn        = "[Computer]JoinDomain"
-        }
+        # PendingReboot RebootOnSignalFromJoinDomain
+        # {
+        #     Name             = "RebootOnSignalFromJoinDomain"
+        #     SkipCcmClientSDK = $true
+        #     DependsOn        = "[xScript]ForceReboot2"
+        #     # DependsOn        = "[Computer]JoinDomain"
+        # }
     }
 }
 
