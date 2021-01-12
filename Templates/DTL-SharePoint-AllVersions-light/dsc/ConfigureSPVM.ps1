@@ -16,7 +16,7 @@ configuration ConfigureSPVM
         [Parameter(Mandatory)] [System.Management.Automation.PSCredential]$SPPassphraseCreds
     )
 
-    Import-DscResource -ModuleName ComputerManagementDsc, ActiveDirectoryDsc, xDnsServer, NetworkingDsc
+    Import-DscResource -ModuleName ComputerManagementDsc, ActiveDirectoryDsc, xDnsServer, NetworkingDsc, xPSDesiredStateConfiguration
 
     [String] $DomainNetbiosName = (Get-NetBIOSName -DomainFQDN $DomainFQDN)
     $Interface = Get-NetAdapter| Where-Object Name -Like "Ethernet*"| Select-Object -First 1
@@ -54,12 +54,27 @@ configuration ConfigureSPVM
         #     DependsOn        = "[WaitForADDomain]WaitForDCReady"
         # }
 
+        xScript ForceReboot1
+        {
+            # If the TestScript returns $false, DSC executes the SetScript to bring the node back to the desired state
+            TestScript = {
+                return (Test-Path HKLM:\SOFTWARE\DscScriptExecution\flag_ForceReboot1)
+            }
+            SetScript = {
+                New-Item -Path HKLM:\SOFTWARE\DscScriptExecution\flag_ForceReboot1 -Force
+                $global:DSCMachineStatus = 1
+            }
+            GetScript = { }
+            PsDscRunAsCredential = $DomainAdminCredsQualified
+            DependsOn = "[WaitForADDomain]WaitForDCReady"
+        }
+
         Computer JoinDomain
         {
             Name       = $ComputerName
             DomainName = $DomainFQDN
             Credential = $DomainAdminCredsQualified
-            DependsOn  = "[WaitForADDomain]WaitForDCReady"
+            DependsOn  = "[xScript]ForceReboot1"
         }
 
         PendingReboot RebootOnSignalFromJoinDomain
