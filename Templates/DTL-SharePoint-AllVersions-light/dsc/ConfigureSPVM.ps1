@@ -77,11 +77,26 @@ configuration ConfigureSPVM
             DependsOn  = "[xScript]ForceReboot1"
         }
 
+        xScript ForceReboot2
+        {
+            # If the TestScript returns $false, DSC executes the SetScript to bring the node back to the desired state
+            TestScript = {
+                return (Test-Path HKLM:\SOFTWARE\DscScriptExecution\ForceReboot2)
+            }
+            SetScript = {
+                New-Item -Path HKLM:\SOFTWARE\DscScriptExecution\ForceReboot2 -Force
+                $global:DSCMachineStatus = 1
+            }
+            GetScript = { }
+            PsDscRunAsCredential = $DomainAdminCredsQualified
+            DependsOn = "[Computer]JoinDomain"
+        }
+
         PendingReboot RebootOnSignalFromJoinDomain
         {
             Name             = "RebootOnSignalFromJoinDomain"
             SkipCcmClientSDK = $true
-            DependsOn        = "[Computer]JoinDomain"
+            DependsOn        = "[xScript]ForceReboot2"
         }        
     }
 }
